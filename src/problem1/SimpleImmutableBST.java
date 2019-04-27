@@ -56,7 +56,9 @@ public class SimpleImmutableBST<K, V> implements Iterable<Pair<K,V>> {
    * Associate key with value in the tree, creating a new tree.
    */
   public SimpleImmutableBST<K, V> set(K key, V value) {
-    return null;
+    SimpleImmutableBST<K,V> tree = new SimpleImmutableBST<>(this.comparator);
+    tree.root = setHelper(this.root, key, value);
+    return tree;
   } // set(K,V)
 
   /**
@@ -84,7 +86,9 @@ public class SimpleImmutableBST<K, V> implements Iterable<Pair<K,V>> {
    * Remove a key from the tree, creating a new tree.
    */
   public SimpleImmutableBST<K, V> remove(K key) {
-    return null;
+    SimpleImmutableBST<K, V> tree = new SimpleImmutableBST<>(this.comparator);
+    tree.root = removeHelper(this.root, key);
+    return tree;
   } // remove(K)
 
   /**
@@ -212,17 +216,58 @@ public class SimpleImmutableBST<K, V> implements Iterable<Pair<K,V>> {
   /**
    * Set a key/value pair in a subtree.
    */
-  ImmutableNode<K, V> setHelper(ImmutableNode<K, V> node, K key, V value) {
-    // TODO: Implement
-    return null;
+  private ImmutableNode<K, V> setHelper(ImmutableNode<K, V> node, K key, V value) {
+    if (node == null) {
+      return new ImmutableNode<K, V>(key, value, null, null);
+    }
+
+    int cmp = comparator.compare(key, node.key());
+    if (cmp < 0) {
+      return new ImmutableNode<K, V>(node.key(), node.value(),
+          setHelper(node.left(), key, value), node.right());
+    } else if (cmp > 0) {
+      return new ImmutableNode<K, V>(node.key(), node.value(),
+          node.left(), setHelper(node.right(), key, value));
+    } else {
+      return new ImmutableNode<K, V>(key, value, node.left(), node.right());
+    }
   } // setHelper(ImmutableNode<K,V>, K, V)
 
   /**
    * Remove a key from the subtree.
    */
-  ImmutableNode<K, V> removeHelper(ImmutableNode<K, V> node, K key) {
-    // TODO: Implement
-    return null;
+  private ImmutableNode<K, V> removeHelper(ImmutableNode<K, V> node, K key) {
+    if (node == null) {
+      return null;
+    }
+
+    int cmp = comparator.compare(key, node.key());
+    if (cmp < 0) {
+      return new ImmutableNode<K, V>(node.key(), node.value(),
+          removeHelper(node.left(), key), node.right());
+    } else if (cmp > 0) {
+      return new ImmutableNode<K, V>(node,key(), node.value(),
+          node.left(), removeHelper(node.right(), key));
+    } else {
+      /* search hit */
+
+      /* trivial case */
+      if (node.right() == null) {
+        return node.left();
+      }
+      if (node.left() == null) {
+        return node.right();
+      }
+
+      /* both left and right node is not null */
+      ImmutableNode<K, V> smallestRightNode = node;
+      while (smallestRightNode.left() != null) {
+        smallestRightNode = smallestRightNode.left();
+      }
+
+      return new ImmutableNode<K, V>(smallestRightNode.key(), smallestRightNode.value(),
+          node.left(), removeHelper(node, smallestRightNode.key()));
+    }
   } // removeHelper(ImmutableNode<K,V>, K)
 
 } // class SimpleBST
