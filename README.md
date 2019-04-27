@@ -1,4 +1,3 @@
-CSC 207 2019S - Exam 2 - Your Name
+CSC 207 2019S - Exam 2 - Zixuan Guo
 ==================================
 
-My version of exam 2 from 2019S.
