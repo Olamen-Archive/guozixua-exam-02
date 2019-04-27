@@ -246,7 +246,7 @@ public class SimpleImmutableBST<K, V> implements Iterable<Pair<K,V>> {
       return new ImmutableNode<K, V>(node.key(), node.value(),
           removeHelper(node.left(), key), node.right());
     } else if (cmp > 0) {
-      return new ImmutableNode<K, V>(node,key(), node.value(),
+      return new ImmutableNode<K, V>(node.key(), node.value(),
           node.left(), removeHelper(node.right(), key));
     } else {
       /* search hit */
