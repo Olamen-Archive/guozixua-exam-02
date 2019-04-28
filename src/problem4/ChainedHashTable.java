@@ -8,6 +8,7 @@ import utils.Reporter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.function.BiConsumer;
 
@@ -271,18 +272,28 @@ public class ChainedHashTable<K, V> implements HashTable<K, V> {
    */
   public Iterator<Pair<K, V>> iterator() {
     return new Iterator<Pair<K, V>>() {
+      private int pos = 0; // position in ArrayList array
+      private Iterator<Pair<K, V>> currentIterator = ((ArrayList<Pair<K, V>>) buckets[0]).iterator();
       public boolean hasNext() {
-        // STUB
-        return false;
+        if (pos >= buckets.length && !currentIterator.hasNext()) {
+          return false;
+        }
+        return true;
       } // hasNext()
 
       public Pair<K, V> next() {
-        // STUB
-        return null;
+        if (!hasNext()) {
+          throw new NoSuchElementException("No more element");
+        }
+
+        if (!currentIterator.hasNext()) {
+          currentIterator = ((ArrayList<Pair<K, V>>) buckets[++pos]).iterator();
+        }
+        return currentIterator.next();
       } // next()
 
       public void remove() {
-        // STUB
+        currentIterator.remove();
       } // remove()
     }; // new Iterator
   } // iterator()
