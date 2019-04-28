@@ -6,10 +6,7 @@ import utils.Pair;
 import utils.Reporter;
 
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.Random;
+import java.util.*;
 import java.util.function.BiConsumer;
 
 /**
@@ -72,6 +69,12 @@ public class ChainedHashTable<K, V> implements HashTable<K, V> {
    * determine when to expand the hash table.
    */
   int size = 0;
+
+  /**
+   * The number of modification made on the hashMap.
+   * For implementing ConcurrentModificationException.
+   */
+  int modCount = 0;
 
   /**
    * The array that we use to store the ArrayList of key/value pairs. (We use an
@@ -197,6 +200,7 @@ public class ChainedHashTable<K, V> implements HashTable<K, V> {
         if (key.equals(pair.key())) {
           bucket.remove(i);
           --this.size;
+          ++modCount;
           return pair.value();
         } // if
       } // for
@@ -238,6 +242,7 @@ public class ChainedHashTable<K, V> implements HashTable<K, V> {
     // If we found nothing with a matching key, add to the end.
     alist.add(new Pair<K, V>(key, value));
     ++this.size;
+    ++this.modCount;
 
     // Report activity, if appropriate
     if (REPORT_BASIC_CALLS && (reporter != null)) {
@@ -272,29 +277,74 @@ public class ChainedHashTable<K, V> implements HashTable<K, V> {
    */
   public Iterator<Pair<K, V>> iterator() {
     return new Iterator<Pair<K, V>>() {
-      private int pos = 0; // position in ArrayList array
-      private Iterator<Pair<K, V>> currentIterator = ((ArrayList<Pair<K, V>>) buckets[0]).iterator();
+
+      /* Pair store the pos and index */
+      private Pair<Integer, Integer> cursor;
+      private Pair<Integer, Integer> update;
+      private int expectedModCount = modCount;
+
       public boolean hasNext() {
-        if (pos >= buckets.length && !currentIterator.hasNext()) {
-          return false;
-        }
-        return true;
+        return nextCursor() != null;
       } // hasNext()
 
       public Pair<K, V> next() {
+        if (expectedModCount != modCount) {
+          throw new ConcurrentModificationException();
+        }
         if (!hasNext()) {
           throw new NoSuchElementException("No more element");
         }
 
-        if (!currentIterator.hasNext()) {
-          currentIterator = ((ArrayList<Pair<K, V>>) buckets[++pos]).iterator();
-        }
-        return currentIterator.next();
+        update = cursor;
+        cursor = nextCursor();
+        int pos = cursor.key();
+        int index = cursor.value();
+
+        return ((ArrayList<Pair<K, V>>) buckets[pos]).get(index);
       } // next()
 
       public void remove() {
-        currentIterator.remove();
+        if (update == null) {
+          throw new IllegalStateException("need call next() first");
+        }
+
+        int pos = update.key();
+        int index = update.value();
+        ((ArrayList<Pair<K, V>>) buckets[pos]).remove(index);
+        update = null;
       } // remove()
+
+      private Pair<Integer, Integer> nextCursor() {
+        if (cursor == null) {
+          return nextValidPos(0) == null ? null :
+              new Pair<Integer, Integer>(nextValidPos(0), 0);
+        }
+
+        int pos = cursor.key();
+        int index = cursor.value();
+        ArrayList<Pair<K, V>> currArray = ((ArrayList<Pair<K, V>>) buckets[pos]);
+
+        if (index + 1 >= currArray.size()) {
+          return nextValidPos(pos + 1) == null ? null :
+              new Pair<Integer, Integer>(nextValidPos(pos + 1), 0);
+        } else {
+          return new Pair<>(pos, index + 1);
+        }
+      }
+
+      /**
+       * Return next valid pos (inclusive)
+       * @param pos position in buckets to start with, inclusive
+       * @return next valid pos in buckets
+       */
+      private Integer nextValidPos(int pos) {
+        for (int i = pos; i < buckets.length; i++) {
+          if (buckets[pos] != null) {
+            return pos;
+          }
+        }
+        return null;
+      }
     }; // new Iterator
   } // iterator()
 
