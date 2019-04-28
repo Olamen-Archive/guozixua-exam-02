@@ -214,6 +214,7 @@ public class ChainedHashTable<K, V> implements HashTable<K, V> {
   @SuppressWarnings("unchecked")
   public V set(K key, V value) {
     V result = null;
+    ++this.modCount;
     // If there are too many entries, expand the table.
     if (this.size > (this.buckets.length * LOAD_FACTOR)) {
       expand();
@@ -242,7 +243,6 @@ public class ChainedHashTable<K, V> implements HashTable<K, V> {
     // If we found nothing with a matching key, add to the end.
     alist.add(new Pair<K, V>(key, value));
     ++this.size;
-    ++this.modCount;
 
     // Report activity, if appropriate
     if (REPORT_BASIC_CALLS && (reporter != null)) {
@@ -282,28 +282,30 @@ public class ChainedHashTable<K, V> implements HashTable<K, V> {
       private Pair<Integer, Integer> cursor;
       private Pair<Integer, Integer> update;
       private int expectedModCount = modCount;
+      private boolean hasInit = false;
 
       public boolean hasNext() {
-        return nextCursor() != null;
+        sanityCheck();
+        return cursor != null;
       } // hasNext()
 
       public Pair<K, V> next() {
-        if (expectedModCount != modCount) {
-          throw new ConcurrentModificationException();
-        }
+        sanityCheck();
         if (!hasNext()) {
           throw new NoSuchElementException("No more element");
         }
-
-        update = cursor;
-        cursor = nextCursor();
+        
         int pos = cursor.key();
         int index = cursor.value();
 
+        update = cursor;
+        cursor = nextCursor();
+        
         return ((ArrayList<Pair<K, V>>) buckets[pos]).get(index);
       } // next()
 
       public void remove() {
+        sanityCheck();
         if (update == null) {
           throw new IllegalStateException("need call next() first");
         }
@@ -312,14 +314,34 @@ public class ChainedHashTable<K, V> implements HashTable<K, V> {
         int index = update.value();
         ((ArrayList<Pair<K, V>>) buckets[pos]).remove(index);
         update = null;
+        
+        --size;
+        ++modCount;
+        ++expectedModCount;
       } // remove()
+      
+      private void sanityCheck() {
+        if (!hasInit) { init(); }
+        if (expectedModCount != modCount) {
+          throw new ConcurrentModificationException();
+        }
+      }
+      
+      private void init() {
+        if (hasInit) {
+          return;
+        }  
+        update = null;
+        cursor = nextValidPos(0) == null ? null : 
+          new Pair<Integer, Integer>(nextValidPos(0), 0);
+        hasInit = true;
+      }
 
       private Pair<Integer, Integer> nextCursor() {
-        if (cursor == null) {
-          return nextValidPos(0) == null ? null :
-              new Pair<Integer, Integer>(nextValidPos(0), 0);
+        if (!hasNext()) {
+          return null;
         }
-
+        
         int pos = cursor.key();
         int index = cursor.value();
         ArrayList<Pair<K, V>> currArray = ((ArrayList<Pair<K, V>>) buckets[pos]);
@@ -339,8 +361,10 @@ public class ChainedHashTable<K, V> implements HashTable<K, V> {
        */
       private Integer nextValidPos(int pos) {
         for (int i = pos; i < buckets.length; i++) {
-          if (buckets[pos] != null) {
-            return pos;
+          @SuppressWarnings("unchecked")
+          ArrayList<Pair<K, V>> currList = ((ArrayList<Pair<K, V>>) buckets[i]);
+          if (currList != null && !currList.isEmpty()) {
+            return i;
           }
         }
         return null;
