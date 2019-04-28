@@ -79,8 +79,7 @@ public class SimpleCircularDLL<T> implements SimpleList<T> {
       // +---------+
 
       public void add(T val) throws UnsupportedOperationException {
-        // Do the main work
-        // STUB
+        cursor = cursor.insertAfter(val);
 
         // Note that we cannot update
         this.update = null;
@@ -123,8 +122,11 @@ public class SimpleCircularDLL<T> implements SimpleList<T> {
         if (!this.hasPrevious()) {
           throw new NoSuchElementException();
         } // if
-        // STUB
-        return null;
+        this.update = cursor;
+        --this.pos;
+        this.cursor = this.cursor.prev();
+
+        return this.update.value();
       } // previous()
 
       public void remove() {
@@ -135,11 +137,12 @@ public class SimpleCircularDLL<T> implements SimpleList<T> {
 
         // Update the cursor
         if (this.update == this.cursor) {
-          // STUB
+          cursor = cursor.prev();
+          update.remove();
         } // if
 
-        // Do the real work
-        // STUB
+        /* cursor is before update */
+        update.remove();
 
         --SimpleCircularDLL.this.size;
 
