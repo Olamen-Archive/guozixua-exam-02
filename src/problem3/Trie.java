@@ -2,10 +2,12 @@ package problem3;
 
 import java.io.PrintWriter;
 import java.util.Iterator;
+
 import utils.MiscUtils;
 import utils.Pair;
 import utils.SimpleMap;
 import utils.SimpleStack;
+
 
 /**
  * A simple implementation of tries.
@@ -27,6 +29,11 @@ public class Trie
    */
   int size;
 
+  /**
+   * The cached value for remove and set operation
+   */
+  String cachedValue;
+
   // +--------------+------------------------------------------------
   // | Constructors |
   // +--------------+
@@ -43,34 +50,83 @@ public class Trie
   // | SimpleMap methods |
   // +-------------------+
 
-  @Override
   public String set(String key, String value) {
-    // TODO Auto-generated method stub
-    return null;
+    if (key == null) {
+      throw new NullPointerException("key is null");
+    }
+
+    cachedValue = null;
+    this.root = set(root, key, value, 0);
+    return cachedValue;
   } // set(String,String)
 
-  @Override
+  private TrieNode set(TrieNode node, String key, String value, int index) {
+    if (node == null) {
+      node = new TrieNode();
+    }
+    if (key.length() == index) {
+      if (node.hasKey()) {
+        cachedValue = node.value();
+      }
+      node.setContents(key, value);
+      return node;
+    }
+
+    char ch = key.charAt(index);
+    node.setNext(ch, set(node.next(ch), key, value, index + 1));
+
+    return node;
+  }
+
   public String get(String key) {
-    // TODO Auto-generated method stub
-    return null;
+    if (key == null) {
+      throw new NullPointerException("key is null");
+    }
+
+    TrieNode node = find(key);
+    if (node == null || !node.hasKey()) {
+      throw new IndexOutOfBoundsException("key not found");
+    }
+
+    return node.key();
   } // get(String)
 
-  @Override
   public int size() {
     return this.size;
   } // size()
 
-  @Override
   public boolean containsKey(String key) {
-    // TODO Auto-generated method stub
-    return false;
+    return find(key) != null;
   } // containsKey(String)
 
-  @Override
   public String remove(String key) {
-    // TODO Auto-generated method stub
-    return null;
+    cachedValue = null;
+    this.root = remove(root, key, 0);
+    return cachedValue;
   } // remove(String)
+
+  private TrieNode remove(TrieNode node, String key, int index) {
+     if (node == null) {
+       return null;
+     }
+
+     if (key.length() == index) {
+       /* clean up the node */
+       if (node.value() != null) {
+         cachedValue = node.value();
+       }
+       node.setContents(null, null);
+     } else {
+       char ch = key.charAt(index);
+       node.setNext(ch, remove(node.next(ch), key, index + 1));
+     }
+
+     if (node.isEmpty()) {
+       return null;
+     }
+
+     return node;
+  }
 
   /**
    * Iterate all the keys in the tree, returning them in alphabetical order by
@@ -80,7 +136,6 @@ public class Trie
     return MiscUtils.transform(this.iterator(), (pair) -> pair.key());
   } // keys()
 
-  @Override
   /**
    * Iterate all the values in the tree, returning them in some undetermined
    * order.
@@ -100,7 +155,6 @@ public class Trie
   // | Iterable methods |
   // +------------------+
 
-  @Override
   /**
    * Iterate all the key/value pairs in the tree, returning them in alphabetical
    * order by key.
@@ -117,13 +171,11 @@ public class Trie
        */
       boolean initialized = false;
 
-      @Override
       public boolean hasNext() {
         checkInit();
         return !remaining.isEmpty();
       } // hasNext()
 
-      @Override
       public Pair<String, String> next() {
         checkInit();
         TrieNode temp = remaining.get();
@@ -210,9 +262,12 @@ public class Trie
     TrieNode current = this.root;
     for (int i = 0; i < len; i++) {
       char ch = key.charAt(i);
-      // TODO: Finish implementation
+      if (current == null) {
+        return null;
+      }
+      current = current.next(ch);
     } // for
-    return null;
+    return current;
   } // find
 
 } // class Trie
@@ -233,6 +288,11 @@ class TrieNode {
   private TrieNode[] next;
 
   /**
+   * Radix of R-trie
+   */
+  public final static int RADIX = 27;
+
+  /**
    * Create a trie node with a specified key and value.
    */
   public TrieNode(String key, String value) {
@@ -241,9 +301,9 @@ class TrieNode {
     } else {
       this.contents = new Pair<String, String>(key, value);
     } // if/else
-    this.next = new TrieNode[27];
+    this.next = new TrieNode[RADIX];
     // The loop is probably not necessary, but I like to be careful.
-    for (int i = 0; i < 27; i++) {
+    for (int i = 0; i < RADIX; i++) {
       this.next[i] = null;
     } // for
   } // TrieNode(String, String)
@@ -303,6 +363,24 @@ class TrieNode {
   public String value() {
     return this.contents.value();
   } // value()
+
+  /**
+   * Check if the node is empty (therefore safe to delete)
+   * @return true if empty
+   */
+  public boolean isEmpty() {
+    if (this.hasKey()) {
+      return false;
+    }
+
+    for (int i = 0; i < RADIX; i++) {
+      if (this.next[i] != null) {
+        return false;
+      }
+    }
+
+    return true;
+  }
 
   /**
    * Convert a character into an index in the next array.
