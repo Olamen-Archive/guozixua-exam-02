@@ -139,6 +139,7 @@ public class SimpleCircularDLL<T> implements SimpleList<T> {
         // Update the cursor
         if (this.update == this.cursor) {
           this.cursor = this.cursor.prev();
+          --this.pos;
         } // if
 
         this.update.remove();
