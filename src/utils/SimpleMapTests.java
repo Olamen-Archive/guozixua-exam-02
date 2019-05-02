@@ -118,7 +118,7 @@ public class SimpleMapTests {
     int len = 1 + random.nextInt(10);
     StringBuilder result = new StringBuilder(len);
     for (int i = 0; i < len; i++) {
-      result.append((char) 'a' + random.nextInt(26));
+      result.append((char) ('a' + random.nextInt(26)));
     } // for
     return result.toString();
   } // randomKey()
@@ -243,7 +243,7 @@ public class SimpleMapTests {
     } // for i
     // Make sure that they are all there.
     for (String key : keys) {
-      if (!stringMap.containsKey(key.toString())) {
+      if (!stringMap.containsKey(key)) {
         log("contains(" + key + ") failed");
         printTest();
         stringMap.dump(new PrintWriter(System.out, true));
@@ -323,7 +323,7 @@ public class SimpleMapTests {
     // Iterate the map
     stringMap.dump(new PrintWriter(System.out, true));
     for (Pair<String, String> pair : stringMap) {
-      System.err.println(pair.key());
+      // System.err.println(pair.key());
       actual.add(pair.key());
     } // for
 

@@ -88,7 +88,7 @@ public class Trie
       throw new IndexOutOfBoundsException("key not found");
     }
 
-    return node.key();
+    return node.value();
   } // get(String)
 
   public int size() {
@@ -96,7 +96,7 @@ public class Trie
   } // size()
 
   public boolean containsKey(String key) {
-    return find(key) != null;
+    return !(find(key) == null || find(key).contents == null); //short circuit
   } // containsKey(String)
 
   public String remove(String key) {
@@ -115,7 +115,7 @@ public class Trie
        if (node.value() != null) {
          cachedValue = node.value();
        }
-       node.setContents(null, null);
+       node.contents = null;
      } else {
        char ch = key.charAt(index);
        node.setNext(ch, remove(node.next(ch), key, index + 1));
@@ -361,7 +361,7 @@ class TrieNode {
    * Get the value in the node.
    */
   public String value() {
-    return this.contents.value();
+    return contents == null ? null : this.contents.value();
   } // value()
 
   /**
@@ -369,7 +369,7 @@ class TrieNode {
    * @return true if empty
    */
   public boolean isEmpty() {
-    if (this.hasKey()) {
+    if (this.contents != null) {
       return false;
     }
 
