@@ -40,20 +40,6 @@ public class SimpleMapTests {
   // +--------------------+
 
   /**
-   * Names of some numbers.
-   */
-  static final String numbers[] =
-      {"zero", "one", "two", "three", "four", "five", "six", "seven", "eight",
-          "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen",
-          "sixteen", "seventeen", "eighteen", "nineteen"};
-
-  /**
-   * Names of more numbers.
-   */
-  static final String tens[] = {"", "", "twenty", "thirty", "forty", "fifty",
-      "sixty", "seventy", "eighty", "ninety"};
-
-  /**
    * A word list stolen from some tests that SamR wrote in the distant past.
    */
   static final String[] words = {"aardvark", "anteater", "antelope", "bear",
@@ -117,33 +103,6 @@ public class SimpleMapTests {
   } // key(String)
 
   /**
-   * Generate a value from a non-negative integer.
-   */
-  static String value(Integer i) {
-    return value(i, false);
-  } // value(integer)
-
-  /**
-   * Generate a value from a non-negative integer; if skipZero is true, returns
-   * "" for zero.
-   */
-  static String value(Integer i, boolean skipZero) {
-    if ((i == 0) && (skipZero)) {
-      return "";
-    } else if (i < 20) {
-      return numbers[i];
-    } else if (i < 100) {
-      return (tens[i / 10] + " " + value(i % 10, true)).trim();
-    } else if (i < 1000) {
-      return (numbers[i / 100] + " hundred " + value(i % 100, true)).trim();
-    } else if (i < 1000000) {
-      return (numbers[i / 1000] + " thousand " + value(i % 1000, true)).trim();
-    } else {
-      return "really big";
-    }
-  } // value(i, skipZero)
-
-  /**
    * Assert that we successfully remove a string from the table.
    */
   void assertRemove(String str) {
@@ -151,18 +110,22 @@ public class SimpleMapTests {
     assertThrows(java.lang.IndexOutOfBoundsException.class,
         () -> stringMap.get(str));
   } // assertRemove
+  
+  /**
+   * Generate a random key
+   */
+  String randomKey() {
+    int len = 1 + random.nextInt(10);
+    StringBuilder result = new StringBuilder(len);
+    for (int i = 0; i < len; i++) {
+      result.append((char) ('a' + random.nextInt(26)));
+    } // for
+    return result.toString();
+  } // randomKey()
 
   // +--------------------+------------------------------------------
   // | Logging operations |
   // +--------------------+
-
-  /**
-   * Set an integer
-   */
-  void set(Integer i) {
-    operations.add("set(" + i + ");");
-    stringMap.set(i.toString(), value(i));
-  } // set(Integer)
 
   /**
    * Set a string.
@@ -171,14 +134,6 @@ public class SimpleMapTests {
     operations.add("set(\"" + str + "\");");
     stringMap.set(str, value(str));
   } // set(String)
-
-  /**
-   * Remove an integer.
-   */
-  void remove(Integer i) {
-    operations.add("remove(" + i + ");");
-    stringMap.remove(i.toString());
-  } // remove(Integer)
 
   /**
    * Remove a string from the stringMap list.
@@ -278,17 +233,17 @@ public class SimpleMapTests {
    */
   @Test
   public void testContainsOnlyAdd() {
-    ArrayList<Integer> keys = new ArrayList<Integer>();
+    ArrayList<String> keys = new ArrayList<String>();
 
     // Add a bunch of values
     for (int i = 0; i < 100; i++) {
-      int rand = random.nextInt(200);
-      keys.add(rand);
-      set(rand);
+      String key = randomKey();
+      keys.add(key);
+      set(key);
     } // for i
     // Make sure that they are all there.
-    for (Integer key : keys) {
-      if (!stringMap.containsKey(key.toString())) {
+    for (String key : keys) {
+      if (!stringMap.containsKey(key)) {
         log("contains(" + key + ") failed");
         printTest();
         stringMap.dump(new PrintWriter(System.out, true));
@@ -302,36 +257,36 @@ public class SimpleMapTests {
    */
   @Test
   public void randomTest() {
-    // Keep track of the values that are currently in the sorted list.
-    ArrayList<Integer> keys = new ArrayList<Integer>();
+    // Keep track of the values that are currently in the map.
+    ArrayList<String> keys = new ArrayList<String>();
 
     // Add a bunch of values
     boolean ok = true;
     for (int i = 0; ok && i < 1000; i++) {
-      Integer rand = random.nextInt(1000);
+      String key = randomKey();
       // Half the time we add
       if (random.nextBoolean()) {
-        if (!stringMap.containsKey(rand.toString())) {
-          set(rand);
+        if (!stringMap.containsKey(key)) {
+          set(key);
         } // if it's not already there.
-        if (!stringMap.containsKey(rand.toString())) {
-          log("After adding " + rand + ", contains(" + rand + ") fails");
+        if (!stringMap.containsKey(key)) {
+          log("After adding " + key + ", containsKey(" + key + ") fails");
           ok = false;
         } // if (!ints.contains(rand))
       } // if we add
       // Half the time we remove
       else {
-        remove(rand);
-        keys.remove((Integer) rand);
-        if (stringMap.containsKey(rand.toString())) {
-          log("After removing " + rand + ", contains(" + rand + ") succeeds");
+        remove(key);
+        keys.remove(key);
+        if (stringMap.containsKey(key.toString())) {
+          log("After removing " + key + ", containsKey(" + key + ") succeeds");
           ok = false;
         } // if ints.contains(rand)
       } // if we remove
       // See if all of the appropriate elements are still there
-      for (Integer key : keys) {
-        if (!stringMap.containsKey(key.toString())) {
-          log("ints no longer contains " + key);
+      for (String key2 : keys) {
+        if (!stringMap.containsKey(key2)) {
+          log("stringMap no longer contains " + key2);
           ok = false;
           break;
         } // if the value is no longer contained
@@ -366,7 +321,9 @@ public class SimpleMapTests {
     } // for
 
     // Iterate the map
+    stringMap.dump(new PrintWriter(System.out, true));
     for (Pair<String, String> pair : stringMap) {
+      // System.err.println(pair.key());
       actual.add(pair.key());
     } // for
 
@@ -387,10 +344,11 @@ public class SimpleMapTests {
     } // if
 
     stringMap.set("A", "A");
+    assertEquals(1, stringMap.size());
     Iterator<Pair<String, String>> si = stringMap.iterator();
     si.next();
     si.remove();
-    assertTrue(stringMap.size() == 0);
+    assertEquals(0, stringMap.size());
     assertFalse(stringMap.iterator().hasNext());
   } // testRemoveSingleton
 

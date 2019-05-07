@@ -3,8 +3,10 @@ package problem1;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
-
 import utils.MiscUtils;
+import utils.Pair;
+import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.Random;
 
 /**
@@ -35,20 +37,26 @@ class SimpleImmutableBSTTests {
   // +--------+
 
   /**
-   * Keys for the current test.
+   * Are we observing steps? (Sometimes print statements are better than a
+   * debugger.)
    */
-  String[] keys;
-  
+  static final boolean OBSERVE = false;
+
   /**
-   * Values for the current test.
+   * Key/value pairs for the current test.
    */
-  Integer[] values;
-  
+  Pair<String, Integer>[] pairs;
+
   /**
-   * Trees for the current test.  (Objects for the normal reason.)
+   * Trees for the current test.
    */
-  Object[] trees;
- 
+  SimpleImmutableBST<String, Integer>[] trees;
+
+  /**
+   * When we want to dump stuff
+   */
+  PrintWriter pen = new PrintWriter(System.out, true);
+
   // +-------+-------------------------------------------------------
   // | Setup |
   // +-------+
@@ -56,59 +64,97 @@ class SimpleImmutableBSTTests {
   /**
    * Prepare the key and value arrays.
    */
+  @SuppressWarnings("unchecked")
   @BeforeEach
   void setup() {
     Random rand = new Random();
-    // Set up the array of keys
-    keys = words.clone();
-    MiscUtils.randomlyPermute(keys);
-    // Set up the array of values
-    values = new Integer[keys.length];
-    for (int i = 0; i < values.length; i++) {
-      values[i] = rand.nextInt(100);
+    // Set up the array of key/value pairs
+    pairs = (Pair<String, Integer>[]) new Pair[words.length];
+    for (int i = 0; i < pairs.length; i++) {
+      pairs[i] = new Pair<String, Integer>(words[i], rand.nextInt(100));
     } // for
+    MiscUtils.randomlyPermute(pairs);
   } // setup()
-  
-  
+
+
   // +-------+-------------------------------------------------------
   // | Tests |
   // +-------+
 
   /**
+   * Check that the new tree is empty.
+   */
+  @Test
+  void testEmpty() {
+    SimpleImmutableBST<String, Integer> tree =
+        new SimpleImmutableBST<String, Integer>();
+    assertEquals(0, tree.size());
+  } // testEmpty()
+
+  /**
    * Test that setting works correctly.
    */
+  @SuppressWarnings("unchecked")
   @Test
   void testSet() {
     // Set up an array of trees of gradually increasing size
-    trees = new Object[keys.length + 1];
-    trees[0] = new SimpleImmutableBST<String, Integer>();
-    for (int i = 0; i < keys.length; i++) {
-      trees[i + 1] = tree(i).set(keys[i], values[i]);
+    trees = new SimpleImmutableBST[pairs.length + 1];
+    SimpleImmutableBST<String, Integer> bst =
+        new SimpleImmutableBST<String, Integer>();
+    checkTree(bst, 0);
+    trees[0] = bst;
+    for (int i = 0; i < pairs.length; i++) {
+      bst = bst.set(pairs[i].key(), pairs[i].value());
+      checkTree(bst, i + 1);
+      trees[i + 1] = bst;
     } // for
 
+    // Recheck all the trees to make sure that none were mutated.
     checkTrees();
   } // testSet()
 
   /**
    * Test that setting works correctly.
    */
+  @SuppressWarnings("unchecked")
   @Test
   void testRemove() {
+    if (OBSERVE) {
+      pen.println("Using " + Arrays.toString(pairs));
+    } //if
     // Build a tree with all of the keys.
-    SimpleImmutableBST<String, Integer> bst = 
-      new SimpleImmutableBST<String,Integer>();
-    for (int i = 0; i < keys.length; i++) {
-      bst = bst.set(keys[i], values[i]);
+    SimpleImmutableBST<String, Integer> bst =
+        new SimpleImmutableBST<String, Integer>();
+    for (int i = 0; i < pairs.length; i++) {
+      bst = bst.set(pairs[i].key(), pairs[i].value());
     } // for
-
+    checkTree(bst, pairs.length);
+    
     // Fill in the trees array by gradually removing elements from
     // the tree.
-    trees = new Object[keys.length + 1];
-    trees[keys.length] = bst;
-    for (int i = keys.length-1; i >= 0; i--) {
-      trees[i] = tree(i+1).remove(keys[i]);
+    MiscUtils.randomlyPermute(pairs);
+    trees = new SimpleImmutableBST[pairs.length + 1];
+    trees[pairs.length] = bst;
+    if (OBSERVE) {
+      pen.println("Original tree");
+      bst.dump(pen);
+    } // if
+    for (int i = pairs.length - 1; i >= 0; i--) {
+      String key = pairs[i].key();
+      if (OBSERVE) {
+        pen.println();
+        pen.println("Removing " + key);
+      } // if
+      bst = bst.remove(key);
+      trees[i] = bst;
+      if (OBSERVE) {
+        bst.dump(pen);
+      } // if
+
+      checkTree(bst, i);
     } // for
 
+    // Make sure that none of the trees were mutated along the way.
     checkTrees();
   } // testRemove()
 
@@ -117,40 +163,46 @@ class SimpleImmutableBSTTests {
   // +-------+
 
   /**
-   * Make sure that all of our trees match expectations (that is, that
-   * trees[n] has size n, and contains the key/value pairs from indices
-   * [0..n) of keys and values.
+   * Make sure that a single tree meets expectations (correct size, contains
+   * appropriate key/value pairs, does not contain other key/value pairs).
    */
-  void checkTrees() {
-    // Verify that the sizes are correct
-    for (int size = 0; size < trees.length; size++) {
-      assertEquals(size, tree(size).size());
+  void checkTree(SimpleImmutableBST<String, Integer> bst, int size) {
+    // Checking size
+    assertEquals(size, bst.size(), "Incorrect size");
+
+    // Checking key/value pairs in tree
+    for (int i = 0; i < size; i++) {
+      assertEquals(pairs[i].value(), bst.get(pairs[i].key()),
+          "Looking for " + pairs[i].key());
     } // for
 
-    // Verify that all of the values that belong in each tree are there,
-    // and all those that do not belong are not there.
-    for (int size = 0; size < trees.length; size++) {
-      SimpleImmutableBST<String, Integer> bst = tree(size);
-      for (int i = 0; i < size; i++) {
-        assertEquals(bst.get(keys[i]), values[i]);
-      } // for
-      for (int i = size; i < trees.length; i++) {
-        try {
-          bst.get(keys[i]);
-          fail(keys[i] + " should not be in the tree");
-        } catch (Exception e) {
-          // Success!
-        } // try/catch
-      } // for
+    // Checking keys not in tree
+    for (int i = size; i < pairs.length; i++) {
+      try {
+        bst.get(pairs[i].key());
+        fail(pairs[i].key() + " should not be in the tree");
+      } catch (Exception e) {
+        // Success!
+      } // try/catch
+    } // for
+  } // checkTree
+
+  /**
+   * Make sure that all of our trees match expectations (that is, that trees[n]
+   * has size n, and contains the key/value pairs from indices [0..n) of keys
+   * and values.
+   */
+  void checkTrees() {
+    for (int size = 0; size < pairs.length; size++) {
+      checkTree(tree(size), size);
     } // for
   } // checkTrees()
 
   /**
    * Get the ith tree in the correct type
    */
-  @SuppressWarnings("unchecked")
-  SimpleImmutableBST<String,Integer> tree(int i) {
-    return (SimpleImmutableBST<String,Integer>) trees[i];
+  SimpleImmutableBST<String, Integer> tree(int i) {
+    return (SimpleImmutableBST<String, Integer>) trees[i];
   } // tree(int)
-  
+
 } // SimpleImmutableBSTTests
