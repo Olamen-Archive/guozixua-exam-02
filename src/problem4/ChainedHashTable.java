@@ -327,6 +327,9 @@ public class ChainedHashTable<K, V> implements HashTable<K, V> {
         }
       }
       
+      /**
+       * initialize the iterator
+       */
       private void init() {
         if (hasInit) {
           return;
@@ -337,6 +340,10 @@ public class ChainedHashTable<K, V> implements HashTable<K, V> {
         hasInit = true;
       }
 
+      /**
+       * Find the next cursor if there exist one
+       * @return next cursor
+       */
       private Pair<Integer, Integer> nextCursor() {
         if (!hasNext()) {
           return null;
