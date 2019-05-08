@@ -289,6 +289,7 @@ public class ChainedHashTable<K, V> implements HashTable<K, V> {
         return cursor != null;
       } // hasNext()
 
+      @SuppressWarnings("unchecked")
       public Pair<K, V> next() {
         sanityCheck();
         if (!hasNext()) {
@@ -304,6 +305,7 @@ public class ChainedHashTable<K, V> implements HashTable<K, V> {
         return ((ArrayList<Pair<K, V>>) buckets[pos]).get(index);
       } // next()
 
+      @SuppressWarnings("unchecked")
       public void remove() {
         sanityCheck();
         if (update == null) {

@@ -40,7 +40,7 @@ class SimpleImmutableBSTTests {
    * Are we observing steps? (Sometimes print statements are better than a
    * debugger.)
    */
-  static final boolean OBSERVE = false;
+  static final boolean OBSERVE = true;
 
   /**
    * Key/value pairs for the current test.
@@ -137,6 +137,7 @@ class SimpleImmutableBSTTests {
     trees[pairs.length] = bst;
     if (OBSERVE) {
       pen.println("Original tree");
+      pen.println("Actual size: " + bst.size());
       bst.dump(pen);
     } // if
     for (int i = pairs.length - 1; i >= 0; i--) {
@@ -148,6 +149,8 @@ class SimpleImmutableBSTTests {
       bst = bst.remove(key);
       trees[i] = bst;
       if (OBSERVE) {
+        pen.println("Expected size: " + i);
+        pen.println("Actual size: " + bst.size());
         bst.dump(pen);
       } // if
 

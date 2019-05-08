@@ -260,13 +260,13 @@ public class SimpleImmutableBST<K, V> implements Iterable<Pair<K,V>> {
       }
 
       /* both left and right node is not null */
-      ImmutableNode<K, V> smallestRightNode = node;
+      ImmutableNode<K, V> smallestRightNode = node.right();
       while (smallestRightNode.left() != null) {
         smallestRightNode = smallestRightNode.left();
       }
 
       return new ImmutableNode<K, V>(smallestRightNode.key(), smallestRightNode.value(),
-          node.left(), removeHelper(node, smallestRightNode.key()));
+          node.left(), removeHelper(node.right(), smallestRightNode.key()));
     }
   } // removeHelper(ImmutableNode<K,V>, K)
 
